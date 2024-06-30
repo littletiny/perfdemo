@@ -65,7 +65,7 @@ static char *perf_get_mmap_buf(struct perf_event_mmap_page *page, int pagesize) 
 	return (char *)page + pagesize;
 }
 
-void consume_perf_event(struct perf_ctx *ctx, int cpu) {
+void consume_perf_event(struct perf_sample_ctx *ctx, int cpu) {
 	char *base;
 	char *cur, *begin, *end;
 
@@ -160,7 +160,7 @@ int perf_init_attr(struct perf_event_attr *attr, int freq) {
 	return perf_sample_attr_init_hw(attr, freq);
 }
 
-static void consume_all_perf_event(struct perf_ctx *ctx) {
+static void consume_all_perf_event(struct perf_sample_ctx *ctx) {
 	int cpus = ctx->cpus;
 	for (;;) {
 		for (int cpu = 0; cpu < cpus; cpu++) {
@@ -181,8 +181,8 @@ static struct perf_event_mmap_page *perf_mmap_event(int fd, int pagesize) {
 	return (struct perf_event_mmap_page *)buf;
 }
 
-static struct perf_ctx *create_perf_ctx() {
-	struct perf_ctx *ctx = (struct perf_ctx *)malloc(sizeof(struct perf_ctx));
+static struct perf_sample_ctx *create_perf_ctx() {
+	struct perf_sample_ctx *ctx = (struct perf_sample_ctx *)malloc(sizeof(struct perf_sample_ctx));
 
 	ctx->cpus = get_nprocs();
 	ctx->perf_mmap_ringbuffer = (char *)malloc(kBufSize);
@@ -205,7 +205,7 @@ static struct perf_ctx *create_perf_ctx() {
 	return ctx;
 }
 
-static perf_ctx* perf_init_ctx(struct perf_ctx *ctx) {
+static perf_sample_ctx* perf_init_ctx(struct perf_sample_ctx *ctx) {
 	struct perf_event_attr attr;
 	perf_init_attr(&attr, 10);
 	ctx->sampletype = attr.sample_type;
@@ -228,15 +228,15 @@ static perf_ctx* perf_init_ctx(struct perf_ctx *ctx) {
 	return ctx;
 }
 
-struct perf_ctx* perf_init(struct perf_ctx *ctx) {
+struct perf_sample_ctx* perf_init(struct perf_sample_ctx *ctx) {
 	return perf_init_ctx(ctx);
 }
 
-void perf_run(struct perf_ctx *ctx) {
+void perf_run(struct perf_sample_ctx *ctx) {
 	consume_all_perf_event(ctx);
 }
 
-int perf_exit(struct perf_ctx *ctx) {
+int perf_exit(struct perf_sample_ctx *ctx) {
 	for (int cpu = 0; cpu < ctx->cpus; cpu++) {
 		if (!ctx->perf_mmap_buf) {
 			munmap(ctx->perf_mmap_buf[cpu], kBufSize + ctx->pagesize);
@@ -253,7 +253,7 @@ int perf_exit(struct perf_ctx *ctx) {
 }
 
 int main() {
-	struct perf_ctx *ctx = create_perf_ctx();
+	struct perf_sample_ctx *ctx = create_perf_ctx();
 	if (!perf_init(ctx)) {
 		perf_exit(ctx);
 		return -1;

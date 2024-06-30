@@ -29,7 +29,7 @@ struct sample_event {
 	char *data;
 };
 
-struct perf_ctx {
+struct perf_sample_ctx {
 	int cpus;
 	int pagesize;
 	uint64_t sampletype;
